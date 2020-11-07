@@ -62,7 +62,7 @@ class Policy(object):
             i_intention = np.expand_dims(preprocess_input(intention), axis=0)
 
         if self.input_frame == 'NORMAL':
-            pred_control = self.model.predict(rgb + [i_intention])
+            pred_control = self.model.predict(rgb + [i_intention] + [speed])
             # pred_control = self.model.predict([rgb,i_intention])
         elif self.input_frame == 'MULTI':
             pred_control = self.model.predict(rgb+[i_intention])
