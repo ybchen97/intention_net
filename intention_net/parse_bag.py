@@ -95,7 +95,7 @@ def parse_bag(bagfn, intention_type):
 
     bag.close()
 
-def main_wrapper(data_dir, sensor='web_cam', intention_type='dlm'):
+def main_wrapper(data_dir, sensor='mynt_eye', intention_type='dlm'):
     global IMG_TOPICS
     global TOPICS
     global TOPICS_IDX
