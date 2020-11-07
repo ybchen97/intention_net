@@ -147,7 +147,7 @@ def define_intention_net_flags():
 
     flags.DEFINE_enum(
             name='dataset', short_name='ds', default="PIONEER",
-            enum_values=['CARLA_SIM', 'CARLA', 'HUAWEI', 'PIONEER'],
+            enum_values=['CARLA_SIM', 'CARLA', 'HUAWEI', 'PIONEER', 'DUCKIETOWN'],
             help=help_wrap("dataset to load for training."))
 
     global cfg
@@ -218,6 +218,9 @@ def main(_):
     elif flags_obj.dataset == 'PIONEER':
         from dataset import PioneerDataset as Dataset
         print ('=> using pioneer data')
+    elif flags_obj.dataset =="DUCKIETOWN":
+        from dataset import DuckieTownDataset as Dataset
+        print ('=> using duckietown data')
     else:
         from dataset import HuaWeiFinalDataset as Dataset
         print ('=> using HUAWEI data')

@@ -672,6 +672,174 @@ class HuaWeiDataset(BaseDataset):
 
 intention_mapping = CarlaSimDataset.INTENTION_MAPPING
 
+class DuckieTownDataset(BaseDataset):
+    STRAIGHT_FORWARD = 0
+    STRAIGHT_BACK = 1
+    LEFT_TURN = 2
+    RIGHT_TURN = 3
+    LANE_FOLLOW = 4
+    # intention wrapper
+    INTENTION = {
+            STRAIGHT_FORWARD: 0,
+            LEFT_TURN: 1,
+            RIGHT_TURN: 2
+            }
+    # use to normalize regression data
+    SCALE_ACC = 0.8
+    SCALE_STEER = 2*np.pi
+
+    def __init__(self, data_dir, batch_size, num_intentions, mode, target_size=(224, 224), shuffle=False, max_samples=None, preprocess=True, input_frame='NORMAL'):
+        super().__init__(data_dir, batch_size, num_intentions, mode, target_size, shuffle, max_samples, preprocess, input_frame)
+
+    def init(self):
+        self.list_images = glob(os.path.join(self.data_dir, 'images/X_*'))
+        self.list_lpes = glob(os.path.join(self.data_dir, 'intentions/I_*'))
+        self.list_labels = glob(os.path.join(self.data_dir, 'actions/Y_*'))
+        self.num_samples = len(self.list_images)
+
+        # print(f"num_samples: {self.num_samples}") # TODO: delete
+        assert len(self.list_images) == len(self.list_labels), "Number of image samples must tally with number of action samples; i "
+
+        # routes = glob(os.path.join(self.data_dir, 'route*'))
+        # self.raw_labels = []
+        # assert (len(routes) > 0), "no routes data founded in folder {}".format(self.data_dir)
+        # for route in routes:
+        #     self.car_data_header, self.car_data = self.read_csv(os.path.join(route, 'LabelData_VehicleData_PRT.txt'))
+        #     self.raw_labels.append(self.car_data)
+        # # reverse header index
+        # self.car_data_idx = {}
+        # for k, v in enumerate(self.car_data_header):
+        #     self.car_data_idx[v] = k
+
+        # # sync data
+        # self.labels = []
+        # self.images = []
+        # self.lpes = []
+        # self.num_samples = 0
+        # for i, label in enumerate(self.raw_labels):
+        #     # we drop the first few stop images when starting, because it is not a valid label
+        #     valid_start = False
+        #     labeled_data = []
+        #     labeled_images = []
+        #     labeled_lpes = []
+        #     print (routes[i])
+        #     for data in label:
+        #         if float(data[self.car_data_idx['current_velocity']]) > 0 and valid_start == False:
+        #             valid_start = True
+        #         if valid_start:
+        #             if self.input_frame == 'NORMAL':
+        #                 fn = os.path.join(routes[i], 'camera_img/front_60/{}.jpg'.format(int(data[self.car_data_idx['img_front_60_frame']])))
+        #             elif self.input_frame == 'WIDE':
+        #                 fn = os.path.join(routes[i], 'camera_img/front_96_left/{}.jpg'.format(int(data[self.car_data_idx['img_front_60_frame']])))
+        #             else:
+        #                 fn_l = os.path.join(routes[i], 'camera_img/side_96_left/{}.jpg'.format(int(data[self.car_data_idx['img_front_60_frame']])))
+        #                 fn_m = os.path.join(routes[i], 'camera_img/front_60/{}.jpg'.format(int(data[self.car_data_idx['img_front_60_frame']])))
+        #                 fn_r = os.path.join(routes[i], 'camera_img/side_96_right/{}.jpg'.format(int(data[self.car_data_idx['img_front_60_frame']])))
+        #                 fn = [fn_l, fn_m, fn_r]
+        #             labeled_images.append(fn)
+        #             lpe_fn = os.path.join(routes[i], 'intention_img/{}.jpg'.format(int(data[self.car_data_idx['intention_img']])))
+        #             labeled_lpes.append(lpe_fn)
+        #             labeled_data.append(data)
+        #     self.num_samples += len(labeled_images)
+        #     self.labels.append(labeled_data)
+        #     self.images.append(labeled_images)
+        #     self.lpes.append(labeled_lpes)
+
+        # self.list_labels = list(itertools.chain.from_iterable(self.labels))
+        # self.list_images = list(itertools.chain.from_iterable(self.images))
+        # self.list_lpes = list(itertools.chain.from_iterable(self.lpes))
+
+    def __getitem__(self, index):
+        """
+        Generate one batch of data
+        """
+        indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
+        X = []
+        XL = []
+        XM = []
+        XR = []
+        I = []
+        S = []
+        Y = []
+        for idx in indexes:
+            lbl = self.list_labels[idx]
+            if self.input_frame == 'MULTI':
+                assert False, "MULTI not supported for DuckyTown"
+                img_l = img_to_array(load_img(self.list_images[idx][0], target_size=self.target_size))
+                img_m = img_to_array(load_img(self.list_images[idx][1], target_size=self.target_size))
+                img_r = img_to_array(load_img(self.list_images[idx][2], target_size=self.target_size))
+                img = [img_l, img_m, img_r]
+                if self.preprocess:
+                    img = [preprocess_input(im) for im in img]
+                XL.append(img[0])
+                XM.append(img[1])
+                XR.append(img[2])
+            else:
+                img = img_to_array(load_img(self.list_images[idx], target_size=self.target_size))
+                if self.preprocess:
+                    img = preprocess_input(img)
+                X.append(img)
+
+            if self.mode == 'DLM':
+                assert False, "DLM not supported for Duckytown"
+                # add data augmentation
+                lbl_intention = self.INTENTION[int(lbl[self.car_data_idx['intention_type']])]
+                if self.preprocess:
+                    if float(lbl[self.car_data_idx['steering_wheel_angle']]) < 0.05:
+                        lbl_intention = np.random.randint(self.num_intentions)
+                intention = to_categorical(lbl_intention, num_classes=self.num_intentions)
+            else:
+                intention = img_to_array(load_img(self.list_lpes[idx], target_size=self.target_size))
+                if self.preprocess:
+                    intention = preprocess_input(intention)
+
+            # extra = [float(lbl[self.car_data_idx['current_velocity']])]
+            # control = [float(lbl[self.car_data_idx['steering_wheel_angle']])/self.SCALE_STEER, (float(lbl[self.car_data_idx['ax']])+0.4)/self.SCALE_ACC]
+            # print(f'lbl:{lbl}')
+            # extra = lbl[0]
+            # control = lbl[1]
+
+            I.append(intention)
+            S.append([0]) # dummy input
+            # print(f'lbl: {lbl}')
+            Y.append(np.load(lbl)) # (velocity, steering angle)
+
+        if self.input_frame == 'MULTI':
+            XL = np.array(XL)
+            XM = np.array(XM)
+            XR = np.array(XR)
+            I = np.array(I)
+            S = np.array(S)
+            Y = np.array(Y)
+            return [XL, XM, XR, I, S], Y
+        else:
+            X = np.array(X)
+            I = np.array(I)
+            S = np.array(S)
+            Y = np.array(Y)
+            return [X, I, S], Y
+
+    def read_csv(self, fn, has_header=True):
+        f = open(fn)
+        reader = csv.reader(f, delimiter=' ')
+        header = None
+        data = []
+        if has_header:
+            row_num = 0
+            for row in reader:
+                if row_num == 0:
+                    header = row
+                    row_num += 1
+                else:
+                    data.append(row)
+                    row_num += 1
+        else:
+            for row in reader:
+                data.append(row)
+
+        # drop the last row because sometimes the last row is not complete
+        return header, data[:-1]
+
 def test():
     #d = CarlaSimDataset('/home/gaowei/SegIRLNavNet/_benchmarks_results/Debug', 2, 5, max_samples=10)
     #d = CarlaImageDataset('/media/gaowei/Blade/linux_data/carla_data/AgentHuman/ImageData', 2, 5, mode='LPE_SIAMESE', max_samples=10)
