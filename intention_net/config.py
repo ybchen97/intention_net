@@ -15,7 +15,7 @@ help_wrap = functools.partial(flags.text_wrap, length=80, indent="",
 absl_app.HelpshortFlag.SHORT_NAME = "h"
 # base flags
 flags.DEFINE_string(
-    name="data_dir", short_name="dd", default="/home/duong/Downloads/data_correct_intention",
+    name="data_dir", short_name="dd", default="/home/yuanbo/projects/2309/intention_net/data",
     help=help_wrap("The location of the input data."))
 
 flags.DEFINE_string(
@@ -23,7 +23,7 @@ flags.DEFINE_string(
     help=help_wrap("The location of the validation data."))
 
 flags.DEFINE_string(
-    name="model_dir", short_name="md", default="/home/duong/Downloads/data_correct_intention/new_model",
+    name="model_dir", short_name="md", default="/home/yuanbo/projects/2309/intention_net/new_model",
     help=help_wrap("The location of the model checkpoint data."))
 
 flags.DEFINE_string(
@@ -64,7 +64,7 @@ flags.DEFINE_float('learning_rate', short_name="lr", default=1e-4,
     help=help_wrap('Initial learning rate.'))
 
 flags.DEFINE_integer(
-    name="batch_size", short_name="bs", default=32,
+    name="batch_size", short_name="bs", default=16,
     help=help_wrap("Batch size for training and evaluation. When using "
 		"multiple gpus, this is the global batch size for "
 		"all devices. For example, if the batch size is 32 "
@@ -107,7 +107,7 @@ def load_config(cls):
 class IntentionNetConfig(object):
     # default params
     train_epochs=150
-    batch_size=32
+    batch_size=16
 
     # Constants should start from _ in order not to get conflict with flags
     _C = edict()
