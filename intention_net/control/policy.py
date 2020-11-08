@@ -50,11 +50,14 @@ class Policy(object):
         print ("=> loaded checkpoint '{}'".format(fn))
         self.model = model
 
-    def predict_control(self, image, intention, speed):
+    def predict_control(self, image, intention, speed, segmented=False):
         if self.input_frame == 'MULTI':
             rgb = [np.expand_dims(preprocess_input(im), axis=0) for im in image]
         else:
-            rgb = [np.expand_dims(preprocess_input(image), axis=0)]
+            if segmented:
+                rgb = [np.expand_dims(image, axis=0)]
+            else:
+                rgb = [np.expand_dims(preprocess_input(image), axis=0)]
 
         if self.mode == 'DLM':
             i_intention = to_categorical([intention], num_classes=self.num_intentions)
