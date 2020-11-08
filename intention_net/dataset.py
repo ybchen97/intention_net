@@ -688,11 +688,16 @@ class DuckieTownDataset(BaseDataset):
     SCALE_ACC = 0.8
     SCALE_STEER = 2*np.pi
 
-    def __init__(self, data_dir, batch_size, num_intentions, mode, target_size=(224, 224), shuffle=False, max_samples=None, preprocess=True, input_frame='NORMAL'):
+    def __init__(self, data_dir, batch_size, num_intentions, mode, target_size=(224, 224), shuffle=False, max_samples=None, preprocess=True, input_frame='NORMAL', segmented=False):
+        self.segmented = segmented
         super().__init__(data_dir, batch_size, num_intentions, mode, target_size, shuffle, max_samples, preprocess, input_frame)
 
     def init(self):
-        self.list_images = glob(os.path.join(self.data_dir, 'images/X_*'))
+        if self.segmented:
+            self.list_images = glob(os.path.join(self.data_dir, 'labels/L_*'))
+            print(self.list_images[0])
+        else:
+            self.list_images = glob(os.path.join(self.data_dir, 'images/X_*'))
         self.list_lpes = glob(os.path.join(self.data_dir, 'intentions/I_*'))
         self.list_labels = glob(os.path.join(self.data_dir, 'actions/Y_*'))
         self.num_samples = len(self.list_images)
@@ -776,6 +781,9 @@ class DuckieTownDataset(BaseDataset):
                 XR.append(img[2])
             else:
                 img = img_to_array(load_img(self.list_images[idx], target_size=self.target_size))
+                if self.segmented:
+                    self.preprocess = False
+                    # load_img automatically duplicates the label values along the last axis to give (224,224,3)
                 if self.preprocess:
                     img = preprocess_input(img)
                 X.append(img)

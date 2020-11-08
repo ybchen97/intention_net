@@ -150,6 +150,10 @@ def define_intention_net_flags():
             enum_values=['CARLA_SIM', 'CARLA', 'HUAWEI', 'PIONEER', 'DUCKIETOWN'],
             help=help_wrap("dataset to load for training."))
 
+    flags.DEFINE_boolean(
+            name="segmented", short_name='seg', default=False,
+            help=help_wrap("Specify if want to train with segmentation labels"))
+
     global cfg
     cfg = load_config(IntentionNetConfig)
 
@@ -225,7 +229,7 @@ def main(_):
         from dataset import HuaWeiFinalDataset as Dataset
         print ('=> using HUAWEI data')
 
-    print ('mode: ', flags_obj.mode, 'input frame: ', flags_obj.input_frame, 'bath_size', flags_obj.batch_size, cfg.NUM_INTENTIONS)
+    print ('mode: ', flags_obj.mode, 'input frame: ', flags_obj.input_frame, 'batch_size', flags_obj.batch_size, cfg.NUM_INTENTIONS)
     model = IntentionNet(flags_obj.mode, flags_obj.input_frame, Dataset.NUM_CONTROL, cfg.NUM_INTENTIONS)
 
     if flags_obj.num_gpus > 1:
@@ -260,8 +264,8 @@ def main(_):
     callbacks = [saveBestModel, lr_reducer, lr_scheduler, tensorboard]
 
     # we choose max_samples to save time for training. For large dataset, we sample 200000 samples each epoch.
-    train_generator = Dataset(flags_obj.data_dir, flags_obj.batch_size, cfg.NUM_INTENTIONS, mode=flags_obj.mode, shuffle=False, max_samples=200000, input_frame=flags_obj.input_frame)
-    val_generator = Dataset(flags_obj.val_dir, flags_obj.batch_size, cfg.NUM_INTENTIONS, mode=flags_obj.mode, max_samples=1000, input_frame=flags_obj.input_frame)
+    train_generator = Dataset(flags_obj.data_dir, flags_obj.batch_size, cfg.NUM_INTENTIONS, mode=flags_obj.mode, shuffle=False, max_samples=200000, input_frame=flags_obj.input_frame, segmented=flags_obj.segmented)
+    val_generator = Dataset(flags_obj.val_dir, flags_obj.batch_size, cfg.NUM_INTENTIONS, mode=flags_obj.mode, max_samples=1000, input_frame=flags_obj.input_frame, segmented=flags_obj.segmented)
 
     optimizer = get_optimizer()
 
